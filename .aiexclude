@@ -1,0 +1,35 @@
+# Files AI assistants should not read or index.
+# Same glob semantics as .gitignore.
+
+# Build output
+target/
+*.war
+*.ear
+*.jar
+*.class
+
+# IDE / OS noise
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Local logs and seeded test log data (may contain real/sensitive log contents)
+*.log
+logs/
+test-logs/
+tmp/
+
+# Local server installs (large, not source)
+standalone/
+domain/
+
+# Local environment / secrets (should never be committed or read by tools)
+.env
+.env.*
+*.local
+secrets/
+*.pem
+*.key
+*.keystore
+*.p12
