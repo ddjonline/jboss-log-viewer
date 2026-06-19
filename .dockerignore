@@ -1,0 +1,11 @@
+# Keep the build context small. The EAR is mounted at run time (not copied in),
+# so only the build files and module sources matter to the image build.
+.git/
+.idea/
+.vscode/
+.agents/
+app-logs/
+**/target/
+!jboss-log-viewer-ear/target/jboss-log-viewer.ear
+*.iml
+.DS_Store

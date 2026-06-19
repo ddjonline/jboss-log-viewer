@@ -5,8 +5,9 @@ application log files from the browser. It presents a file tree on the left and 
 auto-scrolling text view on the right, with optional auto-refresh and transparent decompression
 of archived (rotated) logs.
 
-> **Status:** In development. See [`implementation-plan.md`](implementation-plan.md) for the
-> design and milestone build order.
+> **Status:** Feature-complete (milestones M1–M8). Built and unit-tested locally; the
+> deployment smoke test below should be run on a real WildFly/EAP. See
+> [`implementation-plan.md`](implementation-plan.md) for the design and milestone build order.
 
 ## Features
 
@@ -100,6 +101,98 @@ mvn test
    http://<host>:8080/jboss/logs/viewer/index.html
    ```
 
+## Run with Docker (JBoss EAP 8.1, Java 21)
+
+The repository ships a [`docker/Dockerfile`](docker/Dockerfile) and
+[`docker-compose.yml`](docker-compose.yml) that run the application on **JBoss EAP 8.1**
+(OpenJDK 21, matching the application's Java 21 target). The EAR is **mounted** into the server's
+deployments directory at run time (not baked into the image), so you can rebuild the app and
+redeploy by just restarting the container.
+
+### Prerequisites
+
+- Docker (with Compose v2) or Podman.
+- **A Red Hat subscription.** The official EAP 8.1 image is hosted on the authenticated Red Hat
+  registry. Log in once:
+
+  ```bash
+  docker login registry.redhat.io
+  ```
+
+  If you do not have a subscription, use the [WildFly alternative](#no-subscription-wildfly)
+  below — it runs the identical EAR from a freely pullable image.
+
+### Build the EAR and start the container
+
+```bash
+mvn clean package                 # produces jboss-log-viewer-ear/target/jboss-log-viewer.ear
+docker compose up --build         # builds the EAP 8.1 image and starts the server
+```
+
+What the compose file does:
+
+- **Mounts the EAR** read-only at `/opt/eap/standalone/deployments/jboss-log-viewer.ear`, which
+  EAP auto-deploys on startup.
+- **Mounts `./app-logs`** (host) at `/var/log/app` (container) as the application log directory,
+  seeded with a sample log so the viewer has content to show. Drop your own `*.log` /
+  `*.log.gz` / `*.tar.gz` files into `./app-logs` to see them in the **Application** tab.
+- Sets `JBOSS_SERVER_LOG_DIR=/opt/eap/standalone/log` (EAP's own `server.log`, shown in the
+  **Server** tab) and `JBOSS_APP_LOG_DIR=/var/log/app`.
+- Publishes **8080** (HTTP) and **9990** (management console).
+
+### View the application
+
+Once the log shows the server is started and the EAR deployed, open:
+
+```
+http://localhost:8080/jboss/logs/viewer/index.html
+```
+
+Toggle between **Server** and **Application** logs in the top bar.
+
+### Redeploy after a code change
+
+```bash
+mvn clean package
+docker compose restart            # EAP picks up the rebuilt, mounted EAR
+```
+
+### Stop
+
+```bash
+docker compose down
+```
+
+### Build without compose
+
+```bash
+docker build -f docker/Dockerfile -t jboss-log-viewer:eap81 .
+docker run --rm -p 8080:8080 \
+  -v "$(pwd)/jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/eap/standalone/deployments/jboss-log-viewer.ear:ro" \
+  -v "$(pwd)/app-logs:/var/log/app" \
+  jboss-log-viewer:eap81 -b 0.0.0.0
+```
+
+<a id="no-subscription-wildfly"></a>
+### No Red Hat subscription? Use WildFly
+
+WildFly is the upstream of JBoss EAP and runs the same Jakarta EE 10 EAR. Its image is public:
+
+```bash
+mvn clean package
+docker run --rm -p 8080:8080 -p 9090:9090 \
+  -v "$(pwd)/jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/jboss/wildfly/standalone/deployments/jboss-log-viewer.ear:ro" \
+  -e JBOSS_SERVER_LOG_DIR=/opt/jboss/wildfly/standalone/log \
+  -e JBOSS_APP_LOG_DIR=/opt/jboss/wildfly/standalone/log \
+  quay.io/wildfly/wildfly:latest-jdk21 \
+  /opt/jboss/wildfly/bin/standalone.sh -b 0.0.0.0
+```
+
+Then open the same URL: `http://localhost:8080/jboss/logs/viewer/index.html`.
+
+> The WildFly deployments path is `/opt/jboss/wildfly/standalone/deployments` (vs. EAP's
+> `/opt/eap/standalone/deployments`). Everything else — context roots, env vars, UI — is identical.
+
 ## URLs
 
 | Resource | URL |
@@ -131,10 +224,17 @@ curl -s -o /dev/null -w '%{http_code}\n' \
   "http://localhost:8080/jboss/logs/viewer/api/content?set=server&path=../../etc/passwd"
 ```
 
-Then load the UI in a browser and confirm: the tree renders and toggles, selecting a file shows
-its tail scrolled to the end, auto-refresh appends new lines, the divider drags and persists, and
-selecting a compressed archive shows decompressed text (with an entry picker for multi-file
-archives).
+Then load the UI in a browser (`/jboss/logs/viewer/index.html`) and confirm each item:
+
+- [ ] the file tree renders and toggles between **Server** and **Application**;
+- [ ] selecting a file shows its tail, scrolled to the end;
+- [ ] enabling **Auto-refresh (5s)** appends new lines (verify with
+      `echo "line" >> "$JBOSS_SERVER_LOG_DIR/server.log"`);
+- [ ] scrolling up pauses auto-pin; scrolling back to the bottom resumes it;
+- [ ] dragging the divider resizes the panes and the width persists across a reload;
+- [ ] selecting a compressed file (`.gz`/`.zip`/`.tar.gz`) shows decompressed text with a
+      "decompressed" badge and auto-refresh disabled;
+- [ ] a multi-entry archive shows the entry picker and switching entries reloads the content.
 
 ## Security notes
 

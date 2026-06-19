@@ -1,0 +1,34 @@
+# Run the JBoss Log Viewer on JBoss EAP 8.1 (OpenJDK 21).
+#
+# Prerequisites:
+#   1. Build the EAR:   mvn clean package
+#   2. Log in to the Red Hat registry (subscription required):
+#                       docker login registry.redhat.io
+#
+# Then:   docker compose up --build
+# View:   http://localhost:8080/jboss/logs/viewer/index.html
+#
+services:
+  log-viewer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: jboss-log-viewer:eap81-jdk21
+    ports:
+      - "8080:8080"   # HTTP (application)
+      - "9990:9990"   # management console
+    environment:
+      # Log roots the application reads (resolution: env var wins).
+      JBOSS_SERVER_LOG_DIR: /opt/eap/standalone/log
+      JBOSS_APP_LOG_DIR: /var/log/app
+    volumes:
+      # Mount the built EAR read-only into EAP's deployments directory so the
+      # server auto-deploys it. Rebuild the EAR (mvn package) and restart to
+      # redeploy — no image rebuild needed.
+      - ./jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/eap/standalone/deployments/jboss-log-viewer.ear:ro
+      # Persist / expose the application log directory so the viewer has content
+      # to show and you can drop sample logs into ./app-logs on the host.
+      - ./app-logs:/var/log/app
+    # Bind HTTP and management to all interfaces so the published ports are
+    # reachable from the host (0.0.0.0).
+    command: ["-b", "0.0.0.0", "-bmanagement", "0.0.0.0"]

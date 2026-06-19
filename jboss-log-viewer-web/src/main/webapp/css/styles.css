@@ -1,0 +1,250 @@
+/* JBoss Log Viewer — vanilla CSS, no frameworks. */
+
+:root {
+    --bg: #f5f6f8;
+    --panel-bg: #ffffff;
+    --border: #d4d7dd;
+    --text: #1f2329;
+    --muted: #6b7280;
+    --accent: #1565c0;
+    --accent-soft: #e3f0fb;
+    --content-bg: #1e1e1e;
+    --content-text: #e6e6e6;
+    --topbar-h: 52px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ---- Top bar ---- */
+.topbar {
+    height: var(--topbar-h);
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0 1rem;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.title {
+    font-size: 1.1rem;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.logset-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.toggle-btn {
+    border: none;
+    background: var(--panel-bg);
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.toggle-btn.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.refresh-label {
+    font-size: 0.9rem;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+}
+
+.refresh-label input {
+    vertical-align: middle;
+}
+
+#refresh-btn {
+    border: 1px solid var(--border);
+    background: var(--panel-bg);
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+#refresh-btn:hover {
+    background: var(--accent-soft);
+}
+
+.file-info {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.file-info .badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.05rem 0.45rem;
+    border-radius: 4px;
+    background: #fde68a;
+    color: #7c5e10;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+/* ---- Layout (two panes + divider) ---- */
+.layout {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+}
+
+.tree-pane {
+    flex: 0 0 auto;
+    width: 30%;
+    min-width: 140px;
+    overflow: auto;
+    background: var(--panel-bg);
+    border-right: 1px solid var(--border);
+    padding: 0.5rem 0;
+}
+
+.divider {
+    flex: 0 0 6px;
+    cursor: col-resize;
+    background: var(--border);
+}
+
+.divider:hover,
+.divider:focus {
+    background: var(--accent);
+    outline: none;
+}
+
+.content-pane {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* ---- Tree ---- */
+.tree {
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.tree ul {
+    list-style: none;
+    margin: 0;
+    padding-left: 1rem;
+}
+
+.tree .node {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.5rem;
+    cursor: pointer;
+    white-space: nowrap;
+    border-radius: 4px;
+}
+
+.tree .node:hover {
+    background: var(--accent-soft);
+}
+
+.tree .node.selected {
+    background: var(--accent);
+    color: #fff;
+}
+
+.tree .twisty {
+    width: 1em;
+    display: inline-block;
+    text-align: center;
+    color: var(--muted);
+}
+
+.tree .node.selected .twisty {
+    color: #fff;
+}
+
+.tree .label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree .file-meta {
+    color: var(--muted);
+    font-size: 0.74rem;
+    margin-left: 0.4rem;
+}
+
+.tree .node.selected .file-meta {
+    color: #dbe9fb;
+}
+
+.tree .compressed-mark {
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+
+.tree .empty {
+    color: var(--muted);
+    padding: 1rem;
+    font-style: italic;
+}
+
+/* ---- Content pane ---- */
+.entry-picker {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.8rem;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+}
+
+.content {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    overflow: auto;
+    background: var(--content-bg);
+    color: var(--content-text);
+    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.content.placeholder {
+    color: var(--muted);
+    font-style: italic;
+}

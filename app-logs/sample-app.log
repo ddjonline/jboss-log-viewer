@@ -1,0 +1,8 @@
+2026-06-18 09:00:01,123 INFO  [com.example.app.Startup] Application starting up
+2026-06-18 09:00:01,456 INFO  [com.example.app.Config] Loaded configuration from /opt/app/config
+2026-06-18 09:00:02,001 INFO  [com.example.app.db.Pool] Connection pool initialized (size=10)
+2026-06-18 09:00:02,310 WARN  [com.example.app.cache] Cache warm-up skipped: no snapshot found
+2026-06-18 09:00:02,777 INFO  [com.example.app.Startup] Application ready in 1654 ms
+2026-06-18 09:05:14,200 INFO  [com.example.app.web.Request] GET /api/orders 200 (18 ms)
+2026-06-18 09:05:19,540 ERROR [com.example.app.web.Request] GET /api/orders/999 404 Not Found
+2026-06-18 09:06:42,888 INFO  [com.example.app.web.Request] POST /api/orders 201 (44 ms)

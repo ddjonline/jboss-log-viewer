@@ -58,6 +58,9 @@ test-logs/
 tmp/
 *.tmp
 
+# ...but keep the sample logs that seed the Docker demo's app log directory.
+!app-logs/*.log
+
 # ---- JBoss / WildFly local server (if checked out under project) ----
 standalone/
 domain/
