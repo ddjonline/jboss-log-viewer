@@ -6,7 +6,7 @@
  */
 'use strict';
 
-const REFRESH_MS = 5000;
+const DEFAULT_REFRESH_MS = 5000;
 const BOTTOM_THRESHOLD_PX = 40;
 const DIVIDER_KEY = 'jbossLogViewer.treeWidth';
 
@@ -15,17 +15,19 @@ let titlePulseTimer = null;
 function triggerTitlePulse() {
     const title = document.querySelector('h1.title');
     if (!title) return;
-    if (titlePulseTimer) clearTimeout(titlePulseTimer);
-    // Immediate switch to green, hold for exactly 1s
-    const prevTransition = title.style.transition;
-    title.style.transition = 'none';
-    title.style.color = '#15803d';
-    // Force reflow so the style is applied immediately
-    void title.offsetHeight; // eslint-disable-line no-unused-expressions
-    titlePulseTimer = setTimeout(() => {
-        title.style.color = '';
-        title.style.transition = prevTransition;
-    }, 1000);
+    if (titlePulseTimer) {
+        clearTimeout(titlePulseTimer);
+        titlePulseTimer = null;
+    }
+    // Remove any previous inline color to allow re-applying the pulse
+    title.style.removeProperty('color');
+    // Apply on next frame to ensure consistent paint even during frequent updates
+    requestAnimationFrame(() => {
+        title.style.setProperty('color', '#15803d', 'important'); // force visible green
+        titlePulseTimer = setTimeout(() => {
+            title.style.removeProperty('color');
+        }, 1000);
+    });
 }
 
 const state = {
@@ -34,6 +36,7 @@ const state = {
     entry: null,            // selected archive entry name, or null
     nextOffset: -1,
     timer: null,
+    refreshMs: DEFAULT_REFRESH_MS,
 };
 
 // ---- DOM refs ----
@@ -46,6 +49,7 @@ const el = {
     footer: document.getElementById('footer-path'),
     autoRefresh: document.getElementById('auto-refresh'),
     refreshBtn: document.getElementById('refresh-btn'),
+    refreshSelect: document.getElementById('refresh-interval'),
     downloadBtn: document.getElementById('download-btn'),
     setServer: document.getElementById('set-server'),
     setApplication: document.getElementById('set-application'),
@@ -177,6 +181,7 @@ async function selectFile(node, row) {
 
     // Compressed: auto-refresh does not apply.
     el.autoRefresh.disabled = node.compressed;
+    if (el.refreshSelect) el.refreshSelect.disabled = node.compressed;
     if (node.compressed) {
         el.autoRefresh.checked = false;
         await prepareArchive(node);
@@ -293,7 +298,10 @@ function updateAutoRefresh() {
 
 function startAutoRefresh() {
     stopAutoRefresh();
-    state.timer = window.setInterval(poll, REFRESH_MS);
+    const interval = typeof state.refreshMs === 'number' && state.refreshMs > 0
+        ? state.refreshMs
+        : DEFAULT_REFRESH_MS;
+    state.timer = window.setInterval(poll, interval);
 }
 
 function stopAutoRefresh() {
@@ -363,6 +371,7 @@ function selectSet(set) {
     el.content.textContent = '';
     el.content.classList.add('placeholder');
     el.fileInfo.textContent = '';
+    if (el.refreshSelect) el.refreshSelect.disabled = false;
     if (el.downloadBtn) {
         el.downloadBtn.disabled = true;
         el.downloadBtn.setAttribute('disabled', '');
@@ -425,6 +434,16 @@ function init() {
     el.setApplication.addEventListener('click', () => selectSet('application'));
 
     el.autoRefresh.addEventListener('change', updateAutoRefresh);
+    if (el.refreshSelect) {
+        el.refreshSelect.value = String(DEFAULT_REFRESH_MS);
+        el.refreshSelect.addEventListener('change', () => {
+            const v = parseInt(el.refreshSelect.value, 10);
+            state.refreshMs = Number.isFinite(v) && v > 0 ? v : DEFAULT_REFRESH_MS;
+            if (el.autoRefresh.checked && !el.autoRefresh.disabled && state.selected) {
+                startAutoRefresh(); // restart with new interval
+            }
+        });
+    }
     el.refreshBtn.addEventListener('click', () => {
         if (state.selected) loadContent(true);
     });

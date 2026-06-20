@@ -8,8 +8,11 @@
 ## Build (in `jboss-log-viewer-web/src/main/webapp`)
 
 ### `index.html`
-- Top bar: title; **Server ⟷ Application** toggle; **Auto-refresh (5 s)** checkbox; manual
-  Refresh button; current file name, **size and last updated timestamp indicator**; **Download button for selected log file**; **Search field for text within files**; **Title turns green for ~1s on content updates**.
+ - Top bar: title; **Server ⟷ Application** toggle; **Auto-refresh** checkbox with a
+  **refresh interval dropdown** (5 s, 10 s, 30 s, 1 min, 5 min, 15 min, 30 min);
+  manual Refresh button; current file name, **size and last updated timestamp indicator**;
+  **Download button for selected log file**; **Search field for text within files**;
+  **Title turns green for ~1s on content updates**.
 - Two-pane layout: **left** = scrollable tree (collapsible dirs, file = leaf); **right** = `<pre>`
   monospace content view, scrollable.
  - **Footer:** displays the absolute filesystem path of the selected file.
@@ -35,6 +38,8 @@
 - **Search:** on search input, dynamically highlight search results within the content area by
   applying a styled CSS class to matches.
 - **Auto-refresh:** when checked, `setInterval(poll, 5000)`:
+  - Interval is user-selectable via the dropdown; changing it restarts the timer immediately
+    if auto-refresh is enabled for the current selection.
   - `GET ./api/content?...&offset=<nextOffset>`; if `truncated` → full reload; else **append**
     new content; temporarily turn the page title color to green (~1s) on new content arrival;
   - keep pinned to bottom **only if** the user was already at/near the bottom;
@@ -58,6 +63,7 @@ Browser smoke test on the seeded log dir:
 - tree renders and toggles between server/application;
 - selecting a file shows the tail scrolled to the end;
 - enabling auto-refresh appends new lines every 5 s (echo into the file to verify);
+ - changing the refresh interval updates the polling frequency immediately (e.g. switch to 10 s, 30 s);
  - **download the currently displayed content window and verify file name and content**;
 - **search within file content and verify highlights appear correctly**;
 - **display and verify file size and last updated timestamp are correct**;
@@ -75,4 +81,5 @@ Each behavior observed in the browser (capture the checklist in the README, M8).
 
 - `textContent` only for log content — log lines are untrusted (XSS).
 - No build step: ship the files as-is in the Web WAR.
- - The update indicator is a brief green color pulse on the title (~1s) when new content is loaded/appended.
+- The update indicator is a brief green color pulse on the title (~1s) when new content is loaded/appended.
+ - The update indicator uses an inline color pulse set with high priority to avoid CSS cascade issues; it is applied on the next animation frame to ensure it renders reliably during auto-refresh.
