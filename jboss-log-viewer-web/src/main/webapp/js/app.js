@@ -10,6 +10,24 @@ const REFRESH_MS = 5000;
 const BOTTOM_THRESHOLD_PX = 40;
 const DIVIDER_KEY = 'jbossLogViewer.treeWidth';
 
+// Title pulse: temporarily turn the title green on updates
+let titlePulseTimer = null;
+function triggerTitlePulse() {
+    const title = document.querySelector('h1.title');
+    if (!title) return;
+    if (titlePulseTimer) clearTimeout(titlePulseTimer);
+    // Immediate switch to green, hold for exactly 1s
+    const prevTransition = title.style.transition;
+    title.style.transition = 'none';
+    title.style.color = '#15803d';
+    // Force reflow so the style is applied immediately
+    void title.offsetHeight; // eslint-disable-line no-unused-expressions
+    titlePulseTimer = setTimeout(() => {
+        title.style.color = '';
+        title.style.transition = prevTransition;
+    }, 1000);
+}
+
 const state = {
     set: 'server',          // 'server' | 'application'
     selected: null,         // { path, name, compressed }
@@ -25,8 +43,10 @@ const el = {
     divider: document.getElementById('divider'),
     content: document.getElementById('content'),
     fileInfo: document.getElementById('file-info'),
+    footer: document.getElementById('footer-path'),
     autoRefresh: document.getElementById('auto-refresh'),
     refreshBtn: document.getElementById('refresh-btn'),
+    downloadBtn: document.getElementById('download-btn'),
     setServer: document.getElementById('set-server'),
     setApplication: document.getElementById('set-application'),
     entryPicker: document.getElementById('entry-picker'),
@@ -127,7 +147,8 @@ function buildFile(node) {
 
     const meta = document.createElement('span');
     meta.className = 'file-meta';
-    meta.textContent = formatSize(node.size);
+    const ts = typeof node.lastModified === 'number' ? new Date(node.lastModified).toLocaleString() : '';
+    meta.textContent = [formatSize(node.size), ts].filter(Boolean).join(' · ');
 
     row.append(twisty, label, meta);
     li.appendChild(row);
@@ -143,11 +164,16 @@ async function selectFile(node, row) {
         .forEach((n) => n.classList.remove('selected'));
     row.classList.add('selected');
 
-    state.selected = { path: node.path, name: node.name, compressed: !!node.compressed };
+    state.selected = { path: node.path, name: node.name, compressed: !!node.compressed, lastModified: node.lastModified };
     state.entry = null;
     state.nextOffset = -1;
     el.entryPicker.hidden = true;
     el.entrySelect.innerHTML = '';
+    // Enable Download now that a file is selected
+    if (el.downloadBtn) {
+        el.downloadBtn.disabled = false;
+        el.downloadBtn.removeAttribute('disabled');
+    }
 
     // Compressed: auto-refresh does not apply.
     el.autoRefresh.disabled = node.compressed;
@@ -205,6 +231,12 @@ async function loadContent(scrollToEnd) {
     state.nextOffset = data.nextOffset;
     updateFileInfo(data);
     if (scrollToEnd) scrollContentToEnd();
+    triggerTitlePulse();
+    // Ensure Download is enabled after successful load
+    if (el.downloadBtn) {
+        el.downloadBtn.disabled = false;
+        el.downloadBtn.removeAttribute('disabled');
+    }
 }
 
 // ---- Auto-refresh polling ----
@@ -227,6 +259,11 @@ async function poll() {
         state.nextOffset = data.nextOffset;
         updateFileInfo(data);
         scrollContentToEnd();
+        triggerTitlePulse();
+        if (el.downloadBtn) {
+            el.downloadBtn.disabled = false;
+            el.downloadBtn.removeAttribute('disabled');
+        }
         return;
     }
 
@@ -236,6 +273,11 @@ async function poll() {
         state.nextOffset = data.nextOffset;
         updateFileInfo(data);
         if (atBottom) scrollContentToEnd();
+        triggerTitlePulse();
+        if (el.downloadBtn) {
+            el.downloadBtn.disabled = false;
+            el.downloadBtn.removeAttribute('disabled');
+        }
     } else {
         state.nextOffset = data.nextOffset;
     }
@@ -268,13 +310,20 @@ function isNearBottom() {
 }
 
 function scrollContentToEnd() {
-    el.content.scrollTop = el.content.scrollHeight;
+    // Defer until layout is applied to ensure scrollHeight is final
+    requestAnimationFrame(() => {
+        el.content.scrollTop = el.content.scrollHeight;
+    });
 }
 
 function updateFileInfo(data) {
     if (!state.selected) {
         el.fileInfo.textContent = '';
         return;
+    }
+    // Persist absolute path if provided by the API so the footer can show it.
+    if (data && typeof data.absolutePath === 'string' && data.absolutePath.length > 0) {
+        state.selected.absolutePath = data.absolutePath;
     }
     let text = `${state.selected.name} — ${formatSize(data.fileSize)}`;
     el.fileInfo.textContent = text;
@@ -284,6 +333,7 @@ function updateFileInfo(data) {
         badge.textContent = 'decompressed';
         el.fileInfo.appendChild(badge);
     }
+    updateFooter();
 }
 
 function formatSize(bytes) {
@@ -313,6 +363,11 @@ function selectSet(set) {
     el.content.textContent = '';
     el.content.classList.add('placeholder');
     el.fileInfo.textContent = '';
+    if (el.downloadBtn) {
+        el.downloadBtn.disabled = true;
+        el.downloadBtn.setAttribute('disabled', '');
+    }
+    updateFooter();
     loadTree();
 }
 
@@ -360,8 +415,11 @@ function initDivider() {
 
 // ---- Wiring ----
 function init() {
+    // Footer element is after the script tag in the DOM; reacquire now that DOM is ready.
+    el.footer = document.getElementById('footer-path');
     el.content.classList.add('placeholder');
     el.content.textContent = 'Select a log file from the tree.';
+    updateFooter();
 
     el.setServer.addEventListener('click', () => selectSet('server'));
     el.setApplication.addEventListener('click', () => selectSet('application'));
@@ -370,10 +428,15 @@ function init() {
     el.refreshBtn.addEventListener('click', () => {
         if (state.selected) loadContent(true);
     });
+    el.downloadBtn.addEventListener('click', onDownload);
     el.entrySelect.addEventListener('change', () => {
         state.entry = el.entrySelect.value;
         state.nextOffset = -1;
         loadContent(true);
+        if (el.downloadBtn) {
+            el.downloadBtn.disabled = false;
+            el.downloadBtn.removeAttribute('disabled');
+        }
     });
 
     window.addEventListener('beforeunload', stopAutoRefresh);
@@ -383,3 +446,50 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// Footer shows the full selected path and current log set
+function updateFooter() {
+    if (!el.footer) return;
+    if (!state.selected) {
+        el.footer.textContent = '';
+        return;
+    }
+    const setLabel = state.set === 'server' ? 'Server' : 'Application';
+    const entrySuffix = state.entry ? ` [${state.entry}]` : '';
+    const abs = state.selected.absolutePath;
+    const shown = abs && abs.length > 0 ? abs : state.selected.path;
+    el.footer.textContent = `${setLabel} logs: ${shown}${entrySuffix}`;
+}
+
+// ---- Download current window of the selected log ----
+async function onDownload() {
+    if (!state.selected) return;
+    try {
+        // Use the same content endpoint. For large files this is a tail window per server cap.
+        const url = new URL('./api/content', window.location.href);
+        url.searchParams.set('set', state.set);
+        url.searchParams.set('path', state.selected.path);
+        if (state.entry) url.searchParams.set('entry', state.entry);
+        url.searchParams.set('offset', -1);
+
+        const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const text = data && data.content ? data.content : '';
+
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        const href = URL.createObjectURL(blob);
+        a.href = href;
+        const base = state.selected.name || 'log.txt';
+        const entrySuffix = state.entry ? `__${state.entry.replaceAll('/', '_')}` : '';
+        a.download = `${base}${entrySuffix}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(href);
+    } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Download failed:', e);
+    }
+}

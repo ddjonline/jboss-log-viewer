@@ -12,7 +12,8 @@ package org.jboss.logviewer.model;
  *                   client should perform a full reload
  * @param compressed {@code true} if the content was produced by decompressing an
  *                   archive (auto-refresh does not apply)
+ * @param absolutePath absolute filesystem path of the underlying file
  */
 public record TailResult(String content, long nextOffset, long fileSize,
-                         boolean truncated, boolean compressed) {
+                         boolean truncated, boolean compressed, String absolutePath) {
 }

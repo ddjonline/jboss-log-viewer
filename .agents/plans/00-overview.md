@@ -90,6 +90,20 @@ mvn clean verify    # full build + tests
 - UI: `http://<host>:8080/jboss/logs/viewer/index.html`
 - API: `http://<host>:8080/jboss/logs/viewer/api/{tree,entries,content}`
 
+### Local container quickstart (WildFly)
+
+For local runs without a full install, use the public WildFly image and volume-mount the built EAR:
+
+```bash
+docker run -d --rm -p 8080:8080 \
+  -v "$PWD/jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/jboss/wildfly/standalone/deployments/jboss-log-viewer.ear:ro" \
+  -e JBOSS_SERVER_LOG_DIR=/opt/jboss/wildfly/standalone/log \
+  -e JBOSS_APP_LOG_DIR=/opt/jboss/wildfly/standalone/log \
+  quay.io/wildfly/wildfly:latest-jdk21
+```
+
+Note: Red Hat EAP images from `registry.redhat.io` require authentication; anonymous pulls will fail with `401 Unauthorized`. Prefer the WildFly image above for local development unless you have valid registry credentials.
+
 ## Milestone index
 
 | File | Milestone | Layer |

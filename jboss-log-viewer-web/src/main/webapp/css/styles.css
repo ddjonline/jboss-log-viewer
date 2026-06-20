@@ -1,4 +1,15 @@
-/* JBoss Log Viewer — vanilla CSS, no frameworks. */
+
+
+/* Title pulse: turns green briefly on content updates */
+.title.pulse-green {
+    color: #15803d; /* tailwind-ish green-700 */
+    transition: color 0.2s ease-in;
+}
+
+/* Utility */
+.hidden {
+    display: none !important;
+}
 
 :root {
     --bg: #f5f6f8;
@@ -219,6 +230,18 @@ body {
     color: var(--muted);
     padding: 1rem;
     font-style: italic;
+}
+
+/* ---- Footer ---- */
+.footer {
+    flex: 0 0 40px;
+    background: var(--panel-bg);
+    border-top: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text);
+    display: flex;
+    align-items: center;
 }
 
 /* ---- Content pane ---- */

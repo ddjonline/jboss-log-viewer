@@ -65,6 +65,7 @@ public final class JsonSupport {
                 .add("fileSize", result.fileSize())
                 .add("truncated", result.truncated())
                 .add("compressed", result.compressed())
+                .add("absolutePath", result.absolutePath() == null ? "" : result.absolutePath())
                 .build();
     }
 

@@ -47,7 +47,7 @@ class JsonSupportTest {
 
     @Test
     void tailSerializesAllFields() {
-        TailResult result = new TailResult("hello\n", 42L, 42L, false, true);
+        TailResult result = new TailResult("hello\n", 42L, 42L, false, true, "/var/log/server.log");
         JsonObject json = JsonSupport.tail(result);
 
         assertEquals("hello\n", json.getString("content"));
@@ -55,6 +55,7 @@ class JsonSupportTest {
         assertEquals(42L, json.getJsonNumber("fileSize").longValue());
         assertFalse(json.getBoolean("truncated"));
         assertTrue(json.getBoolean("compressed"));
+        assertEquals("/var/log/server.log", json.getString("absolutePath"));
     }
 
     @Test

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smoke Test</title>
+<style>
+.content {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+}
+.blinking-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background-color: green;
+    border-radius: 50%;
+    animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink {
+    to { visibility: hidden; }
+}
+</style>
+<script>
+function loadContent() {
+    const contentElement = document.querySelector('.content');
+    const text = Array(20).fill("Log line\n").join('');
+    contentElement.textContent = text;
+    scrollContentToEnd();
+    setTimeout(() => contentElement.textContent += 'New content...\n', 1000);
+}
+function scrollContentToEnd() {
+    const contentElement = document.querySelector('.content');
+    contentElement.scrollTop = contentElement.scrollHeight;
+}
+function initiateTest() {
+    loadContent();
+    document.querySelector('.title').appendChild(document.querySelector('.blinking-dot'));
+}
+window.onload = initiateTest;
+</script>
+</head>
+<body>
+<h1 class="title">JBoss Log Viewer <span class="blinking-dot"></span></h1>
+<div class="content"></div>
+<button onclick="loadContent()">Refresh Content</button>
+</body>
+</html>

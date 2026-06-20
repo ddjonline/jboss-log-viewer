@@ -130,7 +130,7 @@ public class LogFileService {
                 raf.readFully(buffer);
             }
             String content = new String(buffer, StandardCharsets.UTF_8);
-            return new TailResult(content, size, size, truncated, false);
+            return new TailResult(content, size, size, truncated, false, file.toString());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read " + file, e);
         }

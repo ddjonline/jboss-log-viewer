@@ -83,7 +83,7 @@ public class LogCodecService {
         long fileSize = sizeOf(file);
         try (InputStream in = openDecompressed(file, kind, entryName)) {
             String content = readTailWindow(in, maxBytes);
-            return new TailResult(content, fileSize, fileSize, false, true);
+            return new TailResult(content, fileSize, fileSize, false, true, file.toString());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to decompress " + relativePath, e);
         }
