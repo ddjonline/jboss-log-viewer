@@ -13,10 +13,17 @@
   manual Refresh button; current file name, **size and last updated timestamp indicator**;
   **Download button for selected log file**; **Search field for text within files**;
   **Title turns green for ~1s on content updates**.
+- Favicon links: reference bundled Web WAR assets with relative paths (`./icons/...`) so they
+  work under `/jboss/logs/viewer` without hardcoded host or context-root assumptions.
 - Two-pane layout: **left** = scrollable tree (collapsible dirs, file = leaf); **right** = `<pre>`
   monospace content view, scrollable.
  - **Footer:** displays the absolute filesystem path of the selected file.
 - **Draggable divider** between panes.
+
+### `icons/`
+- Bundle favicon assets generated from the application icon: `favicon.ico`, PNG favicons for
+  common browser sizes, `apple-touch-icon.png`, and a high-resolution shortcut icon. No external
+  icon URLs or runtime asset generation.
 
 ### `css/styles.css`
 - Clean neutral theme; monospace content pane; the splitter bar styling; **highlighting style for search results**; **styling for file metadata display**; **title color pulse style**; **footer styling**. No CSS frameworks.
@@ -69,6 +76,7 @@ Browser smoke test on the seeded log dir:
 - **display and verify file size and last updated timestamp are correct**;
 - **verify auto-scroll to end and title color pulse on content refresh**;
 - **verify footer displays the full path of the selected file correctly**;
+- **verify the browser tab and shortcut/touch icon use the bundled favicon assets**;
 - divider drag persists across reload;
 - selecting a compressed file shows decompressed text with auto-refresh disabled;
 - a multi-entry archive shows the entry picker.
