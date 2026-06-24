@@ -34,6 +34,8 @@ Maven multi-module reactor → **one deployable EAR** containing **two WARs**:
   Jackson/Gson.
 - **SLF4J only** for logging; `slf4j-api` is `provided` (EAP supplies the binding). Never bundle
   an SLF4J implementation.
+- The EAR includes `META-INF/jboss-deployment-structure.xml` declaring the server `org.slf4j`
+  module dependency at the deployment level and for the `jboss-log-viewer-api.war` sub-deployment.
 - **Frontend is pure HTML/CSS/vanilla JS** (ES2021, `fetch`). No frameworks, no build step, no
   npm. Render log text with `textContent`, never `innerHTML`.
 - **Industry-standard libraries only.** The one third-party runtime dependency is **Apache

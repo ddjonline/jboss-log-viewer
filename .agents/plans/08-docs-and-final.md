@@ -21,6 +21,8 @@ Ensure it documents:
 ### Final pass
 - Confirm no stray dependencies (only Commons Compress as a third-party runtime dep).
 - Confirm SLF4J is `provided`, EE API is `provided`.
+- Confirm the EAR packages `META-INF/jboss-deployment-structure.xml` with `org.slf4j` dependencies
+  for the deployment and the `jboss-log-viewer-api.war` sub-deployment.
 - Confirm no `innerHTML` on log content, all paths go through `PathSecurity`.
 - Confirm Web WAR static assets include the bundled favicon/icon files and `index.html` references
   them with relative paths.

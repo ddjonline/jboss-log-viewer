@@ -32,18 +32,23 @@ Create the Maven multi-module reactor and a trivial deployable EAR.
 - `maven-ear-plugin` with both WARs as `<webModule>` entries; EAR final name
   `jboss-log-viewer`. Context roots come from each WAR's `jboss-web.xml`.
 - Depends on the api and web modules (reactor order: api/web → ear).
+- `src/main/application/META-INF/jboss-deployment-structure.xml` declares the server
+  `org.slf4j` module dependency for the top-level EAR deployment and the
+  `jboss-log-viewer-api.war` sub-deployment. Do not bundle an SLF4J implementation or
+  `slf4j-api` in the EAR/WAR.
 
 ## Validate
 
 1. `mvn clean package` at the parent builds all modules and produces
    `jboss-log-viewer-ear/target/jboss-log-viewer.ear` containing both WARs.
-2. Deploy the EAR to a local WildFly/EAP.
-3. API context root + servlet mapping + JSON-P:
+2. Confirm the EAR contains `META-INF/jboss-deployment-structure.xml`.
+3. Deploy the EAR to a local WildFly/EAP.
+4. API context root + servlet mapping + JSON-P:
    ```bash
    curl -s http://localhost:8080/jboss/logs/viewer/api/ping
    # expect: {"status":"ok"}
    ```
-4. Web WAR context root + longest-prefix routing:
+5. Web WAR context root + longest-prefix routing:
    open `http://localhost:8080/jboss/logs/viewer/index.html` in a browser — placeholder loads.
 
 ## Gate
