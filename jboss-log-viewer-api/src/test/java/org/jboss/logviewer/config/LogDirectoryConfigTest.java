@@ -68,6 +68,34 @@ class LogDirectoryConfigTest {
     }
 
     @Test
+    void linuxStyleJndiValuesAreAccepted() {
+        String server = "/var/local/jboss/eap/standalone/log";
+        String application = "/var/logs/applogs";
+        Map<String, String> jndi = new HashMap<>();
+        jndi.put(LogDirectoryConfig.JNDI_SERVER, server);
+        jndi.put(LogDirectoryConfig.JNDI_APPLICATION, application);
+
+        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(jndi));
+
+        assertEquals(Path.of(server).toAbsolutePath().normalize(), config.rootFor(LogSet.SERVER));
+        assertEquals(Path.of(application).toAbsolutePath().normalize(), config.rootFor(LogSet.APPLICATION));
+    }
+
+    @Test
+    void windowsStyleJndiValuesAreAccepted() {
+        String server = "C:\\jboss\\eap\\standalone\\log";
+        String application = "\\\\fileserver\\applogs";
+        Map<String, String> jndi = new HashMap<>();
+        jndi.put(LogDirectoryConfig.JNDI_SERVER, server);
+        jndi.put(LogDirectoryConfig.JNDI_APPLICATION, application);
+
+        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(jndi));
+
+        assertEquals(Path.of(server).toAbsolutePath().normalize(), config.rootFor(LogSet.SERVER));
+        assertEquals(Path.of(application).toAbsolutePath().normalize(), config.rootFor(LogSet.APPLICATION));
+    }
+
+    @Test
     void missingDirectoryIsFlaggedNotThrown(@TempDir Path base) {
         Path missing = base.resolve("does-not-exist");
         Map<String, String> jndi = new HashMap<>();
