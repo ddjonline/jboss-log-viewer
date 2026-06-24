@@ -5,9 +5,7 @@ application log files from the browser. It presents a file tree on the left and 
 auto-scrolling text view on the right, with optional auto-refresh and transparent decompression
 of archived (rotated) logs.
 
-> **Status:** Feature-complete (milestones M1–M8). Built and unit-tested locally; the
-> deployment smoke test below should be run on a real WildFly/EAP. See
-> [`implementation-plan.md`](implementation-plan.md) for the design and milestone build order.
+![Jboss Log Viewer](doc/screenshot.png)
 
 ## Features
 
