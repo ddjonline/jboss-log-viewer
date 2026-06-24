@@ -54,12 +54,16 @@ Maven multi-module reactor producing **one deployable EAR** containing **two WAR
 
 ## Configuration
 
-Two log roots resolved at startup, each: **env var → system property → default**.
+Two log roots are sourced from environment variables, written into server JNDI during startup, and
+read by the API backend through JNDI lookups.
 
-| Purpose | Env var | System-property fallback |
-|---|---|---|
-| Server logs | `JBOSS_SERVER_LOG_DIR` | `jboss.server.log.dir` |
-| Application logs | `JBOSS_APP_LOG_DIR` | `app.log.dir` (falls back to server log dir) |
+| Purpose | Source env var | Backend JNDI key | Default |
+|---|---|---|---|
+| Server logs | `JBOSS_SERVER_LOG_DIR` | `java:/comp/env/server-log-root` | `/var/local/jboss/eap/standalone/log` |
+| Application logs | `JBOSS_APP_LOG_DIR` | `java:/comp/env/app-log-root` | `/var/logs/applogs` |
+
+The Docker image startup configures these JNDI simple bindings in the standalone profile before
+EAP starts. Direct non-Docker deployments must configure equivalent JNDI bindings.
 
 ## Testability rule
 

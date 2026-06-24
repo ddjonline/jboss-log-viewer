@@ -47,13 +47,14 @@ WARs:
 
 ## Configuration
 
-The two log root directories are supplied via **environment properties**. Each resolves in this
-order: **environment variable → JVM system property → default**.
+The two log root directories are sourced from environment variables, written into server JNDI, and
+read by the API backend through JNDI lookups. The Docker image in this repository performs that
+JNDI setup automatically before EAP starts.
 
-| Purpose | Environment variable | System-property fallback | Default |
+| Purpose | Source environment variable | Backend JNDI key | Default |
 |---|---|---|---|
-| Server logs | `JBOSS_SERVER_LOG_DIR` | `jboss.server.log.dir` | `EAP_HOME/standalone/log` |
-| Application logs | `JBOSS_APP_LOG_DIR` | `app.log.dir` | falls back to the server log dir |
+| Server logs | `JBOSS_SERVER_LOG_DIR` | `java:/comp/env/server-log-root` | `/var/local/jboss/eap/standalone/log` |
+| Application logs | `JBOSS_APP_LOG_DIR` | `java:/comp/env/app-log-root` | `/var/logs/applogs` |
 
 If a configured directory is missing or unreadable, the app logs a warning and shows an empty
 tree for that set rather than failing to start.
@@ -87,7 +88,18 @@ mvn test
    export JBOSS_APP_LOG_DIR="/var/log/myapp"
    ```
 
-2. Copy the EAR into the server's deployments directory:
+2. Configure equivalent simple JNDI bindings in the standalone profile before deploying the EAR:
+
+   ```bash
+   "$EAP_HOME/bin/jboss-cli.sh" --connect <<'EOF'
+   /subsystem=naming/binding=java\:\/comp\/env\/server-log-root:add(binding-type=simple,type=java.lang.String,value="${env.JBOSS_SERVER_LOG_DIR:/var/local/jboss/eap/standalone/log}")
+   /subsystem=naming/binding=java\:\/comp\/env\/app-log-root:add(binding-type=simple,type=java.lang.String,value="${env.JBOSS_APP_LOG_DIR:/var/logs/applogs}")
+   EOF
+   ```
+
+   If the bindings already exist, update their `value` attributes instead of adding them.
+
+3. Copy the EAR into the server's deployments directory:
 
    ```bash
    cp jboss-log-viewer-ear/target/jboss-log-viewer.ear "$EAP_HOME/standalone/deployments/"
@@ -95,7 +107,7 @@ mvn test
 
    (Or deploy via the management console / `jboss-cli`.)
 
-3. Open the UI:
+4. Open the UI:
 
    ```
    http://<host>:8080/jboss/logs/viewer/index.html
@@ -133,11 +145,12 @@ What the compose file does:
 
 - **Mounts the EAR** read-only at `/opt/eap/standalone/deployments/jboss-log-viewer.ear`, which
   EAP auto-deploys on startup.
-- **Mounts `./app-logs`** (host) at `/var/log/app` (container) as the application log directory,
+- **Mounts `./app-logs`** (host) at `/var/logs/applogs` (container) as the application log directory,
   seeded with a sample log so the viewer has content to show. Drop your own `*.log` /
   `*.log.gz` / `*.tar.gz` files into `./app-logs` to see them in the **Application** tab.
 - Sets `JBOSS_SERVER_LOG_DIR=/opt/eap/standalone/log` (EAP's own `server.log`, shown in the
-  **Server** tab) and `JBOSS_APP_LOG_DIR=/var/log/app`.
+  **Server** tab) and `JBOSS_APP_LOG_DIR=/var/logs/applogs`; image startup writes both values into
+  `java:/comp/env/server-log-root` and `java:/comp/env/app-log-root`.
 - Publishes **8080** (HTTP) and **9990** (management console).
 
 ### View the application
@@ -169,21 +182,24 @@ docker compose down
 docker build -f docker/Dockerfile -t jboss-log-viewer:eap81 .
 docker run --rm -p 8080:8080 \
   -v "$(pwd)/jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/eap/standalone/deployments/jboss-log-viewer.ear:ro" \
-  -v "$(pwd)/app-logs:/var/log/app" \
+  -v "$(pwd)/app-logs:/var/logs/applogs" \
+  -e JBOSS_SERVER_LOG_DIR=/opt/eap/standalone/log \
+  -e JBOSS_APP_LOG_DIR=/var/logs/applogs \
   jboss-log-viewer:eap81 -b 0.0.0.0
 ```
 
 <a id="no-subscription-wildfly"></a>
 ### No Red Hat subscription? Use WildFly
 
-WildFly is the upstream of JBoss EAP and runs the same Jakarta EE 10 EAR. Its image is public:
+WildFly is the upstream of JBoss EAP and runs the same Jakarta EE 10 EAR. Its image is public.
+For a full equivalent run, configure the same JNDI bindings documented above before deploying the
+EAR; the simple command below relies on backend defaults for the log roots:
 
 ```bash
 mvn clean package
 docker run --rm -p 8080:8080 -p 9090:9090 \
   -v "$(pwd)/jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/jboss/wildfly/standalone/deployments/jboss-log-viewer.ear:ro" \
-  -e JBOSS_SERVER_LOG_DIR=/opt/jboss/wildfly/standalone/log \
-  -e JBOSS_APP_LOG_DIR=/opt/jboss/wildfly/standalone/log \
+  -v "$(pwd)/app-logs:/var/logs/applogs" \
   quay.io/wildfly/wildfly:latest-jdk21 \
   /opt/jboss/wildfly/bin/standalone.sh -b 0.0.0.0
 ```
@@ -191,7 +207,7 @@ docker run --rm -p 8080:8080 -p 9090:9090 \
 Then open the same URL: `http://localhost:8080/jboss/logs/viewer/index.html`.
 
 > The WildFly deployments path is `/opt/jboss/wildfly/standalone/deployments` (vs. EAP's
-> `/opt/eap/standalone/deployments`). Everything else — context roots, env vars, UI — is identical.
+> `/opt/eap/standalone/deployments`). Context roots, JNDI keys, and UI are identical.
 
 ## URLs
 

@@ -9,7 +9,8 @@
 
 ### `README.md` (already scaffolded — finalize against the real build)
 Ensure it documents:
-- env vars (`JBOSS_SERVER_LOG_DIR`, `JBOSS_APP_LOG_DIR`) and resolution order;
+- env vars (`JBOSS_SERVER_LOG_DIR`, `JBOSS_APP_LOG_DIR`), their JNDI bindings
+  (`java:/comp/env/server-log-root`, `java:/comp/env/app-log-root`), and defaults;
 - build: `mvn clean package` → `jboss-log-viewer-ear/target/jboss-log-viewer.ear`;
 - deploy: copy the EAR to `EAP_HOME/standalone/deployments/`;
 - URLs (UI + the three API endpoints);

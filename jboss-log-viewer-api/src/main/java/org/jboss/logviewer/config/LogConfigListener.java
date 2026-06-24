@@ -9,11 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Builds the singleton {@link LogDirectoryConfig} from the real process
- * environment at deployment time and publishes it as a {@link ServletContext}
- * attribute for the servlets (M6) to retrieve.
+ * Builds the singleton {@link LogDirectoryConfig} from server JNDI bindings at
+ * deployment time and publishes it as a {@link ServletContext} attribute for the
+ * servlets (M6) to retrieve.
  *
- * <p>This listener is the only place that reads the actual environment; the
+ * <p>This listener is the only place that reads the server naming context; the
  * resolution logic itself lives in {@link LogDirectoryConfig} so it stays
  * unit-testable without a container.
  */
@@ -27,7 +27,7 @@ public class LogConfigListener implements ServletContextListener {
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        LogDirectoryConfig config = LogDirectoryConfig.fromEnvironment();
+        LogDirectoryConfig config = LogDirectoryConfig.fromJndi();
         config.logResolvedRoots();
         sce.getServletContext().setAttribute(CONFIG_ATTRIBUTE, config);
         LOG.info("JBoss Log Viewer configuration initialized.");

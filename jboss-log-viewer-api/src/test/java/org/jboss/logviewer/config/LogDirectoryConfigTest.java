@@ -15,7 +15,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Unit tests for {@link LogDirectoryConfig} resolution and usability handling.
- * Uses injectable env/system-property lookups so no real environment is touched.
+ * Uses an injectable JNDI lookup so no real naming provider is touched.
  */
 class LogDirectoryConfigTest {
 
@@ -24,50 +24,44 @@ class LogDirectoryConfigTest {
     }
 
     @Test
-    void envVarWinsOverSystemPropertyAndDefault(@TempDir Path envDir, @TempDir Path propDir) throws Exception {
-        Map<String, String> env = new HashMap<>();
-        Map<String, String> props = new HashMap<>();
-        env.put(LogDirectoryConfig.ENV_SERVER, envDir.toString());
-        props.put(LogDirectoryConfig.PROP_SERVER, propDir.toString());
+    void serverJndiBindingWinsOverDefault(@TempDir Path jndiDir) throws Exception {
+        Map<String, String> jndi = new HashMap<>();
+        jndi.put(LogDirectoryConfig.JNDI_SERVER, jndiDir.toString());
 
-        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(env), lookup(props));
+        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(jndi));
 
-        assertEquals(envDir.toRealPath(), config.rootFor(LogSet.SERVER),
-                "Environment variable must take precedence over the system property");
+        assertEquals(jndiDir.toRealPath(), config.rootFor(LogSet.SERVER),
+                "JNDI binding must take precedence over the default");
     }
 
     @Test
-    void systemPropertyUsedWhenEnvVarAbsent(@TempDir Path propDir) throws Exception {
-        Map<String, String> env = new HashMap<>();
-        Map<String, String> props = new HashMap<>();
-        props.put(LogDirectoryConfig.PROP_SERVER, propDir.toString());
+    void defaultsUsedWhenJndiBindingsAbsent() {
+        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(Map.of()));
 
-        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(env), lookup(props));
-
-        assertEquals(propDir.toRealPath(), config.rootFor(LogSet.SERVER),
-                "System property must be used when the environment variable is unset");
+        assertEquals(Path.of(LogDirectoryConfig.DEFAULT_SERVER).toAbsolutePath().normalize(),
+                config.rootFor(LogSet.SERVER));
+        assertEquals(Path.of(LogDirectoryConfig.DEFAULT_APPLICATION).toAbsolutePath().normalize(),
+                config.rootFor(LogSet.APPLICATION));
     }
 
     @Test
-    void applicationFallsBackToServerWhenUnset(@TempDir Path serverDir) {
-        Map<String, String> env = new HashMap<>();
-        Map<String, String> props = new HashMap<>();
-        env.put(LogDirectoryConfig.ENV_SERVER, serverDir.toString());
-        // No application override configured.
+    void blankJndiBindingUsesDefault() {
+        Map<String, String> jndi = new HashMap<>();
+        jndi.put(LogDirectoryConfig.JNDI_APPLICATION, " ");
 
-        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(env), lookup(props));
+        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(jndi));
 
-        assertEquals(config.rootFor(LogSet.SERVER), config.rootFor(LogSet.APPLICATION),
-                "Application root must fall back to the server root when unset");
+        assertEquals(Path.of(LogDirectoryConfig.DEFAULT_APPLICATION).toAbsolutePath().normalize(),
+                config.rootFor(LogSet.APPLICATION));
     }
 
     @Test
     void distinctApplicationRootIsHonoured(@TempDir Path serverDir, @TempDir Path appDir) throws Exception {
-        Map<String, String> env = new HashMap<>();
-        env.put(LogDirectoryConfig.ENV_SERVER, serverDir.toString());
-        env.put(LogDirectoryConfig.ENV_APPLICATION, appDir.toString());
+        Map<String, String> jndi = new HashMap<>();
+        jndi.put(LogDirectoryConfig.JNDI_SERVER, serverDir.toString());
+        jndi.put(LogDirectoryConfig.JNDI_APPLICATION, appDir.toString());
 
-        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(env), lookup(Map.of()));
+        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(jndi));
 
         assertEquals(appDir.toRealPath(), config.rootFor(LogSet.APPLICATION));
         assertEquals(serverDir.toRealPath(), config.rootFor(LogSet.SERVER));
@@ -76,11 +70,11 @@ class LogDirectoryConfigTest {
     @Test
     void missingDirectoryIsFlaggedNotThrown(@TempDir Path base) {
         Path missing = base.resolve("does-not-exist");
-        Map<String, String> env = new HashMap<>();
-        env.put(LogDirectoryConfig.ENV_SERVER, missing.toString());
+        Map<String, String> jndi = new HashMap<>();
+        jndi.put(LogDirectoryConfig.JNDI_SERVER, missing.toString());
 
         // Construction must not throw for a missing directory...
-        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(env), lookup(Map.of()));
+        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(jndi));
 
         // ...but the root must be reported as unusable.
         assertFalse(config.isUsable(LogSet.SERVER),
@@ -93,10 +87,10 @@ class LogDirectoryConfigTest {
         Path serverDir = Files.createDirectory(base.resolve("log"));
         Path messyPath = base.resolve(".").resolve("log");
 
-        Map<String, String> env = new HashMap<>();
-        env.put(LogDirectoryConfig.ENV_SERVER, messyPath.toString());
+        Map<String, String> jndi = new HashMap<>();
+        jndi.put(LogDirectoryConfig.JNDI_SERVER, messyPath.toString());
 
-        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(env), lookup(Map.of()));
+        LogDirectoryConfig config = LogDirectoryConfig.resolve(lookup(jndi));
 
         assertTrue(config.isUsable(LogSet.SERVER));
         assertEquals(serverDir.toRealPath(), config.rootFor(LogSet.SERVER),

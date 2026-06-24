@@ -42,12 +42,16 @@ Maven multi-module reactor → **one deployable EAR** containing **two WARs**:
 
 ## Configuration
 
-Two log roots, each resolved: **env var → system property → default**.
+Two log roots are sourced from environment variables, written into server JNDI during startup, and
+read by the API backend through JNDI lookups.
 
-| Purpose | Env var | System-property fallback | Default |
+| Purpose | Source env var | Backend JNDI key | Default |
 |---|---|---|---|
-| Server logs | `JBOSS_SERVER_LOG_DIR` | `jboss.server.log.dir` | `EAP_HOME/standalone/log` |
-| Application logs | `JBOSS_APP_LOG_DIR` | `app.log.dir` | falls back to server log dir |
+| Server logs | `JBOSS_SERVER_LOG_DIR` | `java:/comp/env/server-log-root` | `/var/local/jboss/eap/standalone/log` |
+| Application logs | `JBOSS_APP_LOG_DIR` | `java:/comp/env/app-log-root` | `/var/logs/applogs` |
+
+The Docker image startup configures these JNDI simple bindings in the standalone profile before
+EAP starts. Direct non-Docker deployments must configure equivalent JNDI bindings.
 
 Missing/unreadable root → log a warning (SLF4J) and serve an empty tree; never fail deployment.
 
@@ -92,13 +96,14 @@ mvn clean verify    # full build + tests
 
 ### Local container quickstart (WildFly)
 
-For local runs without a full install, use the public WildFly image and volume-mount the built EAR:
+For local runs without a full install, use the public WildFly image and volume-mount the built EAR.
+Configure the same JNDI bindings documented above for equivalent log-root behavior; the simple
+command below relies on backend defaults:
 
 ```bash
 docker run -d --rm -p 8080:8080 \
   -v "$PWD/jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/jboss/wildfly/standalone/deployments/jboss-log-viewer.ear:ro" \
-  -e JBOSS_SERVER_LOG_DIR=/opt/jboss/wildfly/standalone/log \
-  -e JBOSS_APP_LOG_DIR=/opt/jboss/wildfly/standalone/log \
+  -v "$PWD/app-logs:/var/logs/applogs" \
   quay.io/wildfly/wildfly:latest-jdk21
 ```
 

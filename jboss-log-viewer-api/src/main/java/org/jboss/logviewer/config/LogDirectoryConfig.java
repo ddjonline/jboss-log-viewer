@@ -7,25 +7,28 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Resolves and holds the two log root directories.
  *
- * <p>Resolution per root follows the order <strong>environment variable &rarr;
- * JVM system property &rarr; default</strong>:
+ * <p>Resolution per root uses backend JNDI lookups, with defaults if a binding
+ * is missing or blank:
  * <ul>
- *   <li>Server: {@code JBOSS_SERVER_LOG_DIR} &rarr; {@code jboss.server.log.dir}
- *       &rarr; default (if any).</li>
- *   <li>Application: {@code JBOSS_APP_LOG_DIR} &rarr; {@code app.log.dir} &rarr;
- *       falls back to the resolved server root.</li>
+ *   <li>Server: {@code java:/comp/env/server-log-root} &rarr;
+ *       {@code /var/local/jboss/eap/standalone/log}.</li>
+ *   <li>Application: {@code java:/comp/env/app-log-root} &rarr;
+ *       {@code /var/logs/applogs}.</li>
  * </ul>
  *
- * <p>The resolution logic is exposed through {@link #resolve(Function, Function)}
- * with injectable lookups so it can be unit-tested without touching the real
- * process environment. The {@code (Path, Path)} constructor lets tests build a
- * config directly from temp directories.
+ * <p>The resolution logic is exposed through {@link #resolve(Function)} with an
+ * injectable lookup so it can be unit-tested without a naming provider. The
+ * {@code (Path, Path)} constructor lets tests build a config directly from temp
+ * directories.
  *
  * <p>A root that is missing or not a readable directory is retained (so the rest
  * of the application can report it) but flagged via {@link #isUsable(LogSet)};
@@ -39,9 +42,13 @@ public final class LogDirectoryConfig {
     public static final String ENV_SERVER = "JBOSS_SERVER_LOG_DIR";
     public static final String ENV_APPLICATION = "JBOSS_APP_LOG_DIR";
 
-    /** System-property fallback names. */
-    public static final String PROP_SERVER = "jboss.server.log.dir";
-    public static final String PROP_APPLICATION = "app.log.dir";
+    /** JNDI names configured by the server. */
+    public static final String JNDI_SERVER = "java:/comp/env/server-log-root";
+    public static final String JNDI_APPLICATION = "java:/comp/env/app-log-root";
+
+    /** Defaults used by the server-side JNDI binding and as backend fallback. */
+    public static final String DEFAULT_SERVER = "/var/local/jboss/eap/standalone/log";
+    public static final String DEFAULT_APPLICATION = "/var/logs/applogs";
 
     private final Map<LogSet, Path> roots = new EnumMap<>(LogSet.class);
 
@@ -64,37 +71,27 @@ public final class LogDirectoryConfig {
     }
 
     /**
-     * Resolves both roots from the supplied environment and system-property
-     * lookups, applying the env &rarr; sysprop &rarr; default precedence.
+     * Resolves both roots from the supplied JNDI lookup, falling back to the
+     * documented defaults when a binding is absent or blank.
      *
-     * @param env        lookup for environment variables (e.g. {@code System::getenv})
-     * @param systemProp lookup for system properties (e.g. {@code System::getProperty})
+     * @param jndiLookup lookup for JNDI names
      * @return a fully resolved configuration
      */
-    public static LogDirectoryConfig resolve(Function<String, String> env,
-                                             Function<String, String> systemProp) {
-        Objects.requireNonNull(env, "env");
-        Objects.requireNonNull(systemProp, "systemProp");
+    public static LogDirectoryConfig resolve(Function<String, String> jndiLookup) {
+        Objects.requireNonNull(jndiLookup, "jndiLookup");
 
-        String server = firstNonBlank(env.apply(ENV_SERVER), systemProp.apply(PROP_SERVER));
-        String application = firstNonBlank(env.apply(ENV_APPLICATION), systemProp.apply(PROP_APPLICATION));
+        String server = valueOrDefault(jndiLookup.apply(JNDI_SERVER), DEFAULT_SERVER);
+        String application = valueOrDefault(jndiLookup.apply(JNDI_APPLICATION), DEFAULT_APPLICATION);
 
-        if (server == null) {
-            LOG.warn("No server log directory configured ({} / {} unset); "
-                    + "the server log tree will be empty.", ENV_SERVER, PROP_SERVER);
-        }
-
-        Path serverPath = server != null ? Path.of(server) : Path.of("");
-        Path applicationPath = application != null ? Path.of(application) : null;
-        return new LogDirectoryConfig(serverPath, applicationPath);
+        return new LogDirectoryConfig(Path.of(server), Path.of(application));
     }
 
     /**
-     * Convenience factory that reads the real process environment and system
-     * properties. Used by {@link LogConfigListener}.
+     * Convenience factory that reads the configured server JNDI names. Used by
+     * {@link LogConfigListener}.
      */
-    public static LogDirectoryConfig fromEnvironment() {
-        return resolve(System::getenv, System::getProperty);
+    public static LogDirectoryConfig fromJndi() {
+        return resolve(LogDirectoryConfig::lookupString);
     }
 
     /** @return the canonical root directory for the given log set. */
@@ -132,12 +129,25 @@ public final class LogDirectoryConfig {
         }
     }
 
-    private static String firstNonBlank(String a, String b) {
-        if (a != null && !a.isBlank()) {
-            return a;
+    private static String valueOrDefault(String value, String defaultValue) {
+        if (value != null && !value.isBlank()) {
+            return value;
         }
-        if (b != null && !b.isBlank()) {
-            return b;
+        return defaultValue;
+    }
+
+    private static String lookupString(String name) {
+        try {
+            Object value = new InitialContext().lookup(name);
+            if (value instanceof String stringValue) {
+                return stringValue;
+            }
+            if (value != null) {
+                LOG.warn("JNDI binding {} has unsupported value type {}; using default.",
+                        name, value.getClass().getName());
+            }
+        } catch (NamingException e) {
+            LOG.warn("JNDI binding {} is not available; using default.", name);
         }
         return null;
     }

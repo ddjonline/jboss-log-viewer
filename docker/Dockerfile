@@ -19,19 +19,25 @@
 ARG EAP_IMAGE=registry.redhat.io/jboss-eap-8/eap81-openjdk21-runtime-openshift-rhel9:latest
 FROM ${EAP_IMAGE}
 
-# JBOSS_HOME is provided by the base image (/opt/eap). Define the two log roots
-# the application reads. The server log dir is EAP's own standalone/log; the
-# application log dir defaults to a separate, mountable location.
-ENV JBOSS_SERVER_LOG_DIR=${JBOSS_HOME}/standalone/log \
-    JBOSS_APP_LOG_DIR=/var/log/app
+# JBOSS_HOME is provided by the base image (/opt/eap). Define the source-of-truth
+# environment values that the startup script writes into standalone.xml as JNDI
+# simple bindings before EAP starts.
+ENV JBOSS_SERVER_LOG_DIR=/var/local/jboss/eap/standalone/log \
+    JBOSS_APP_LOG_DIR=/var/logs/applogs
 
 # Create the application log directory with group-writable perms (the EAP images
 # run as an arbitrary UID in group root on OpenShift; jboss:root keeps it valid
 # locally too).
 USER root
-RUN mkdir -p /var/log/app && chown -R jboss:root /var/log/app && chmod -R g+rwX /var/log/app
+COPY docker/configure-jndi-and-start.sh /opt/eap/bin/configure-jndi-and-start.sh
+RUN mkdir -p /var/local/jboss/eap/standalone/log /var/logs/applogs \
+    && chown -R jboss:root /var/local/jboss /var/logs/applogs /opt/eap/bin/configure-jndi-and-start.sh \
+    && chmod -R g+rwX /var/local/jboss /var/logs/applogs \
+    && chmod 0755 /opt/eap/bin/configure-jndi-and-start.sh
 USER jboss
 
-# The runtime image already starts the server bound to all interfaces via its
-# default entrypoint. Expose the HTTP and management ports.
+ENTRYPOINT ["/opt/eap/bin/configure-jndi-and-start.sh"]
+
+# The custom entrypoint configures JNDI and then starts the server. Expose the
+# HTTP and management ports.
 EXPOSE 8080 9990
