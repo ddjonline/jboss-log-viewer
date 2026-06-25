@@ -31,7 +31,7 @@ function triggerTitlePulse() {
 }
 
 const state = {
-    set: 'server',          // 'server' | 'application'
+    set: 'application',     // 'server' | 'application'
     selected: null,         // { path, name, compressed }
     entry: null,            // selected archive entry name, or null
     nextOffset: -1,
