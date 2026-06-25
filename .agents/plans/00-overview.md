@@ -28,7 +28,7 @@ Maven multi-module reactor → **one deployable EAR** containing **two WARs**:
 
 ## Hard constraints (do not violate)
 
-- **Java 21** (`maven.compiler.release=21`).
+- **Java 17** (`maven.compiler.release=17`).
 - **Base Java / Jakarta EE only — no frameworks.** No Spring, no JAX-RS, no CDI for logic.
   Endpoints are plain `HttpServlet`. JSON via **Jakarta JSON-P** (`jakarta.json.*`), not
   Jackson/Gson.
@@ -106,7 +106,7 @@ command below relies on backend defaults:
 docker run -d --rm -p 8080:8080 \
   -v "$PWD/jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/jboss/wildfly/standalone/deployments/jboss-log-viewer.ear:ro" \
   -v "$PWD/app-logs:/var/logs/applogs" \
-  quay.io/wildfly/wildfly:latest-jdk21
+  quay.io/wildfly/wildfly:latest-jdk17
 ```
 
 Note: Red Hat EAP images from `registry.redhat.io` require authentication; anonymous pulls will fail with `401 Unauthorized`. Prefer the WildFly image above for local development unless you have valid registry credentials.

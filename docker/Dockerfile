@@ -1,6 +1,6 @@
-# JBoss EAP 8.1 (OpenJDK 21) image for the JBoss Log Viewer.
+# JBoss EAP 8.1 (OpenJDK 17) image for the JBoss Log Viewer.
 #
-# Uses the Java 21 runtime image to match the application's Java 21 target.
+# Uses the Java 17 runtime image to match the application's Java 17 target.
 #
 # The official Red Hat EAP 8.1 images live behind the authenticated Red Hat
 # registry (registry.redhat.io) and require a Red Hat subscription. Log in
@@ -16,7 +16,7 @@
 # If you do not have a Red Hat subscription, see the WildFly alternative in the
 # README, which runs the identical EAR from a freely pullable image.
 
-ARG EAP_IMAGE=registry.redhat.io/jboss-eap-8/eap81-openjdk21-runtime-openshift-rhel9:latest
+ARG EAP_IMAGE=registry.redhat.io/jboss-eap-8/eap81-openjdk17-runtime-openshift-rhel9:latest
 FROM ${EAP_IMAGE}
 
 # JBOSS_HOME is provided by the base image (/opt/eap). Define the source-of-truth

@@ -32,7 +32,7 @@ Maven multi-module reactor producing **one deployable EAR** containing **two WAR
 
 ## Hard constraints (do not violate)
 
-- **Java 21** (`maven.compiler.release=21`). Use modern Java; no preview features.
+- **Java 17** (`maven.compiler.release=17`). Use modern Java; no preview features.
 - **Base Java / Jakarta EE only — no frameworks.** No Spring, no JAX-RS, no CDI for business
   logic. Endpoints are plain `HttpServlet`. JSON is **Jakarta JSON-P** (`jakarta.json.*`) —
   **not** Jackson or Gson.

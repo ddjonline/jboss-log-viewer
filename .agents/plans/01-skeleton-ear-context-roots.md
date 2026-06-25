@@ -11,10 +11,10 @@ Create the Maven multi-module reactor and a trivial deployable EAR.
 
 ### Parent reactor `pom.xml` (`packaging=pom`)
 - `<modules>`: `jboss-log-viewer-api`, `jboss-log-viewer-web`, `jboss-log-viewer-ear`.
-- Shared `<properties>`: `maven.compiler.release=21`, dependency/plugin versions.
+- Shared `<properties>`: `maven.compiler.release=17`, dependency/plugin versions.
 - `<dependencyManagement>`: pin Jakarta EE Web API 10, SLF4J 2.0.x, Commons Compress 1.26.x,
   JUnit Jupiter 5.x.
-- Plugin management: compiler (`<release>21</release>`), war, ear, surefire.
+- Plugin management: compiler (`<release>17</release>`), war, ear, surefire.
 
 ### `jboss-log-viewer-api` (`packaging=war`)
 - Dependencies: `jakarta.platform:jakarta.jakartaee-web-api:10.0.0` (**provided**),

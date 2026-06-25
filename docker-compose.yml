@@ -1,4 +1,4 @@
-# Run the JBoss Log Viewer on JBoss EAP 8.1 (OpenJDK 21).
+# Run the JBoss Log Viewer on JBoss EAP 8.1 (OpenJDK 17).
 #
 # Prerequisites:
 #   1. Build the EAR:   mvn clean package
@@ -13,7 +13,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: jboss-log-viewer:eap81-jdk21
+    image: jboss-log-viewer:eap81-jdk17
     ports:
       - "8080:8080"   # HTTP (application)
       - "9990:9990"   # management console

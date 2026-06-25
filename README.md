@@ -21,7 +21,7 @@ of archived (rotated) logs.
 
 ## Requirements
 
-- **Java 21** (JDK)
+- **Java 17** (JDK)
 - **Maven 3.9+**
 - **JBoss EAP 8+** or **WildFly 30+** as the deployment target
 
@@ -111,11 +111,11 @@ mvn test
    http://<host>:8080/jboss/logs/viewer/index.html
    ```
 
-## Run with Docker (JBoss EAP 8.1, Java 21)
+## Run with Docker (JBoss EAP 8.1, Java 17)
 
 The repository ships a [`docker/Dockerfile`](docker/Dockerfile) and
 [`docker-compose.yml`](docker-compose.yml) that run the application on **JBoss EAP 8.1**
-(OpenJDK 21, matching the application's Java 21 target). The EAR is **mounted** into the server's
+(OpenJDK 17, matching the application's Java 17 target). The EAR is **mounted** into the server's
 deployments directory at run time (not baked into the image), so you can rebuild the app and
 redeploy by just restarting the container.
 
@@ -198,7 +198,7 @@ mvn clean package
 docker run --rm -p 8080:8080 -p 9090:9090 \
   -v "$(pwd)/jboss-log-viewer-ear/target/jboss-log-viewer.ear:/opt/jboss/wildfly/standalone/deployments/jboss-log-viewer.ear:ro" \
   -v "$(pwd)/app-logs:/var/logs/applogs" \
-  quay.io/wildfly/wildfly:latest-jdk21 \
+  quay.io/wildfly/wildfly:latest-jdk17 \
   /opt/jboss/wildfly/bin/standalone.sh -b 0.0.0.0
 ```
 

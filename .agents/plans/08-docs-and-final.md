@@ -16,7 +16,7 @@ Ensure it documents:
 - URLs (UI + the three API endpoints);
 - the M1/M6/M7 validation commands assembled into a **reproducible smoke-test script**;
 - the browser checklist from M7.
- - a WildFly Docker quickstart with `quay.io/wildfly/wildfly:latest-jdk21` mounting the EAR, and a note that Red Hat EAP images on `registry.redhat.io` require authentication (anonymous pulls fail with `401 Unauthorized`).
+ - a WildFly Docker quickstart with `quay.io/wildfly/wildfly:latest-jdk17` mounting the EAR, and a note that Red Hat EAP images on `registry.redhat.io` require authentication (anonymous pulls fail with `401 Unauthorized`).
 
 ### Final pass
 - Confirm no stray dependencies (only Commons Compress as a third-party runtime dep).
